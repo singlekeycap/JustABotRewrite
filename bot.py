@@ -1,6 +1,8 @@
 import discord
 import os
 import random
+from datetime import datetime
+from pytz import timezone
 from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
@@ -36,13 +38,15 @@ class BotStuffs():
     @bot.slash_command(guild_ids=[869694274319581184])
     async def invite(ctx):
         """Shows invite info, like server/bot invites"""
-        print(ctx.interaction.user)
-        useravatar = "https://th.bing.com/th/id/R.388dae0c99ae8338e21c8a73edb00894?rik=MtJISwFjgf2ukg&riu=http%3a%2f%2fwallpapersdsc.net%2fwp-content%2fuploads%2f2017%2f10%2fBig-Rock-Wallpapers-HD.jpg&ehk=gss1k%2fanrDJYSekiNi%2fRKvoqernt270zzzUw0k66M4s%3d&risl=&pid=ImgRaw&r=0"
+        useravatar = ctx.interaction.user.avatar
         username = ctx.author
-        embed=discord.Embed(title='Invite Stuff', description="Here is all the invite stuff!", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        embed=discord.Embed(title='Invites', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
         embed.set_author(name=username, icon_url=useravatar)
-        embed.add_field(name=":globe_with_meridians:", value="[Invite To Owner's Server](https://justanobody.me/server.html)", inline=False)
-        embed.add_field(name=":robot:", value="[Invite Bot To Your Server](https://justanobody.me/bot.html)", inline=False)
+        embed.add_field(name="‎", value=":globe_with_meridians: [Invite To Owner's Server](https://justanobody.me/server.html)", inline=False)
+        embed.add_field(name="‎", value=":robot: [Invite Bot To Your Server](https://justanobody.me/bot.html)", inline=False)
+        tz = timezone("UTC")
+        now = datetime.now(tz=tz)
+        embed.set_footer(text=now.strftime("%b %w %Y • %H:%M UTC"))
         await ctx.respond(embed=embed)
     
     @bot.slash_command(guild_ids=[869694274319581184])
@@ -58,5 +62,48 @@ class BotStuffs():
         embed = discord.Embed(title="Bot version: "+ver, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
         embed.add_field(name="Changelog:", value="**"+ver+" includes:**\n\nUpdated urls and name\n\nSlowly adding in new commands (new help menu possible)\n\nFixed r34 command (no tags necessary)")
         await ctx.respond(embed=embed)
+
+class Math:
+    """Math Commands for the needy"""
+    @bot.slash_command(guild_ids=[869694274319581184])
+    async def simple(ctx, operation : str):
+        """Type 1st value, followed by [+, -, *, /] and then 2nd value"""
+        if '+' in operation:
+            operation.split('+')
+            A=float(operation.split('+')[0])
+            B=float(operation.split('+')[1])
+            answer=A+B
+            embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+            embed.add_field(name=str(A)+'+'+str(B)+'=', value=str(answer))
+            await ctx.respond(embed=embed)
+        elif '-' in operation:
+            operation.split('-')
+            A=float(operation.split('-')[0])
+            B=float(operation.split('-')[1])
+            answer=A-B
+            embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+            embed.add_field(name=str(A)+'-'+str(B)+'=', value=str(answer))
+            await ctx.respond(embed=embed)
+        elif '*' in operation:
+            operation.split('*')
+            A=float(operation.split('*')[0])
+            B=float(operation.split('*')[1])
+            answer=A*B
+            embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+            embed.add_field(name=str(A)+'*'+str(B)+'=', value=str(answer))
+            await ctx.respond(embed=embed)
+        elif '/' in operation:
+            operation.split('/')
+            A=float(operation.split('/')[0])
+            B=float(operation.split('/')[1])
+            try:
+                answer=A/B
+                embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+                embed.add_field(name=str(A)+'/'+str(B)+'=', value=str(answer))
+                await ctx.respond(embed=embed)
+            except ZeroDivisionError:
+                embed=discord.Embed(title='You can\'t do that!', color=0xff0000)
+                embed.add_field(name='You tried to divide by zero...', value="**That's illegal math!**")
+                await ctx.respond(embed=embed)
 
 bot.run(TOKEN)
