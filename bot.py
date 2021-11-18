@@ -69,43 +69,41 @@ class Math:
     @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
     async def simple(ctx, operation : str):
         """Type 1st value, followed by [+, -, *, /] and then 2nd value"""
+        title = "Here is your result!"
+        color=discord.Color(random.randint(0x000000, 0xFFFFFF))
         if '+' in operation:
             operation.split('+')
             A=float(operation.split('+')[0])
             B=float(operation.split('+')[1])
             answer=A+B
-            embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
-            embed.add_field(name=str(A)+'+'+str(B)+'=', value=str(answer))
-            await ctx.respond(embed=embed)
+            result=str(A)+"+"+str(B)+"="
         elif '-' in operation:
             operation.split('-')
             A=float(operation.split('-')[0])
             B=float(operation.split('-')[1])
             answer=A-B
-            embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
-            embed.add_field(name=str(A)+'-'+str(B)+'=', value=str(answer))
-            await ctx.respond(embed=embed)
+            result=str(A)+"-"+str(B)+"="
         elif '*' in operation:
             operation.split('*')
             A=float(operation.split('*')[0])
             B=float(operation.split('*')[1])
             answer=A*B
-            embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
-            embed.add_field(name=str(A)+'*'+str(B)+'=', value=str(answer))
-            await ctx.respond(embed=embed)
+            result=str(A)+'*'+str(B)+'='
         elif '/' in operation:
             operation.split('/')
             A=float(operation.split('/')[0])
             B=float(operation.split('/')[1])
             try:
                 answer=A/B
-                embed=discord.Embed(title='Here is your result!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
-                embed.add_field(name=str(A)+'/'+str(B)+'=', value=str(answer))
-                await ctx.respond(embed=embed)
+                result=str(A)+'/'+str(B)+'='
             except ZeroDivisionError:
-                embed=discord.Embed(title='You can\'t do that!', color=0xff0000)
-                embed.add_field(name='You tried to divide by zero...', value="**That's illegal math!**")
-                await ctx.respond(embed=embed)
+                title = "You can't do that!"
+                color = 0xff0000
+                result = "You tried to divide by zero..."
+                answer = "**That's illegal math!**"
+        embed=discord.Embed(title=title, color=color)
+        embed.add_field(name=result, value=answer)
+        await ctx.respond(embed=embed)
 
 class OwnerOnly:
     @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
