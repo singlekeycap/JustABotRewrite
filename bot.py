@@ -133,5 +133,21 @@ class OwnerOnly:
             embed.add_field(name="NO", value="You are not allowed to run exec!")
             await ctx.respond(embed = embed)
 
+    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
+    async def img(ctx, name:str):
+        """Send file from name"""
+        if(ctx.interaction.user.id == 312319419240022017):
+            try:
+                file = discord.File(name)
+                await ctx.respond(file = file)
+            except Exception:
+                embed=discord.Embed(title='File results', color=discord.Color(0xFF0000))
+                embed.add_field(name="ERROR", value="The file isn't available on the system")
+                await ctx.respond(embed = embed)
+        else:
+            embed=discord.Embed(title='File results', color=discord.Color(0xFF0000))
+            embed.add_field(name="NO", value="You are not allowed to run img!")
+            await ctx.respond(embed = embed)
+
 
 bot.run(TOKEN)
