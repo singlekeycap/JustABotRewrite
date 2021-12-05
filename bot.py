@@ -1,7 +1,5 @@
-import discord
-import os
-import random
-import time
+import discord, os, random, time, math, requests
+from fake_useragent import UserAgent
 from datetime import datetime
 from pytz import timezone
 from dotenv import load_dotenv
@@ -24,17 +22,6 @@ async def on_ready():
         members = str(servers[i].member_count)
         print(' '+ servers[i].name+' with '+members+' members!')
 
-class Defaults():
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def hello(ctx):
-        """Say hello to the bot"""
-        await ctx.respond(f"Hello {ctx.author}!")
-
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def joined(ctx, member: discord.Member = None):
-        user = member or ctx.author
-        await ctx.respond(f"{user.name} joined at {discord.utils.format_dt(user.joined_at)}")
-
 class BotStuffs():
     @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
     async def invite(ctx):
@@ -51,11 +38,18 @@ class BotStuffs():
         await ctx.respond(embed=embed)
     
     @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def ping(ctx):
-        """Shows bot latency ping"""
-        t = await ctx.respond('Ping!')
-        ms = (t.created_at-ctx.message.created_at).total_seconds() * 1000
-        await t.edit(content='Pong! Ping: {}ms'.format(int(ms)))
+    async def ping(ctx) -> None:
+        """Tests server latency by measuring how long it takes to edit a message."""
+        embed = discord.Embed(title="Pong!", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        embed.set_thumbnail(url=bot.user.display_avatar)
+        embed.description = "Latency: testing..."
+        b = datetime.utcnow()
+        await ctx.respond(embed=embed)
+        ping = math.floor((datetime.utcnow() - b).total_seconds() * 1000)
+        embed.description = ""
+        embed.add_field(name="Message Latency", value=f"`{ping}ms`")
+        embed.add_field(name="API Latency", value=f"`{math.floor(bot.latency*1000)}ms`")
+        await ctx.edit(embed=embed)
     
     @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
     async def version(ctx):
@@ -105,6 +99,66 @@ class Math:
         embed.add_field(name=result, value=answer)
         await ctx.respond(embed=embed)
 
+class Memes():
+    """Funny memes"""
+    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
+    async def tiktok(ctx):
+        """Random TikTok quote (Requested by Anonymous)"""
+        useravatar = ctx.interaction.user.avatar
+        username = ctx.author
+        quotelist = ["Hit or miss, I guess they never miss", "I'm already Tracer", "**You need healing**", "*E*", "Alright, one more Tik Tok shenanigan and I'm out"]
+        quote = random.choice(quotelist)
+        embed = discord.Embed(title="TikTok", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        embed.set_author(name=username, icon_url=useravatar)
+        embed.add_field(name="Here is your quote...", value=quote)
+        embed.set_footer(text="TikTok is gay")
+        await ctx.respond(embed=embed)
+    
+    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
+    async def meme(ctx):
+        """Random meme from Reddit"""
+        useravatar = ctx.interaction.user.avatar
+        username = ctx.author
+        ua = UserAgent()
+        sorts = ['new', 'controversial', 'top', 'hot', 'rising']
+        sort = random.choice(sorts)
+        subreddits = ['meme', 'memes', 'me_irl', 'dankmemes', 'Edgymemes']
+        subreddit = random.choice(subreddits)
+        url = 'https://www.reddit.com/r/'+subreddit+'/'+sort+'/.json?'+sort+'=new&t=all&limit=20'
+        response = requests.get(url, headers={'User-agent': ua.random})
+        if not response.ok:
+            print("Error", response.status_code)
+        data = response.json()['data']['children']
+        images = []
+        for i in range(len(data)):
+            current_post = data[i]['data']
+            images.append(current_post)
+        current_post = random.choice(images)
+        url = current_post['url']
+        if 'imgur.com' in url:
+            url = url+'.jpg'
+        imagename = current_post['title']
+        embed = discord.Embed(title=imagename, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        embed.set_author(name=username, icon_url=useravatar)
+        embed.set_image(url=url)
+        embed.set_footer(text="Provided from r/"+subreddit+".")
+        await ctx.respond(embed=embed)
+
+class Fun():
+    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
+    async def choose(ctx, choices : str):
+        """Choose between things (separated by commas)"""
+        choices = choices.split(",")
+        await ctx.respond(random.choice(choices))
+    
+    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
+    async def gay(ctx, user : discord.Member):
+        """Are you gay? (meme)"""
+        level = random.randint(1,100)
+        embed=discord.Embed(title='Gay Meter 2000', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        embed.add_field(name='{0.name} is...'.format(user), value=str(level)+'% gay!')
+        await ctx.respond(embed=embed)
+
 class OwnerOnly:
     @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
     async def exec(ctx, exec:str):
@@ -148,6 +202,5 @@ class OwnerOnly:
             embed=discord.Embed(title='File results', color=discord.Color(0xFF0000))
             embed.add_field(name="NO", value="You are not allowed to run img!")
             await ctx.respond(embed = embed)
-
 
 bot.run(TOKEN)
