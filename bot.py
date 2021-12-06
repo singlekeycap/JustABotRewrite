@@ -1,5 +1,7 @@
-import discord, os, random, time, math, requests
+import discord, os, random, math, requests, requests, urllib3, substring, certifi
+from discord.ext import commands
 from fake_useragent import UserAgent
+from bs4 import BeautifulSoup
 from datetime import datetime
 from pytz import timezone
 from dotenv import load_dotenv
@@ -9,6 +11,7 @@ TOKEN = os.getenv("TOKEN")
 #Set constants
 ver = "0.1b"
 dev = "JustANobody#2107"
+guild=[906774586987794483, 869694274319581184]
 
 bot = discord.Bot()
 
@@ -22,9 +25,10 @@ async def on_ready():
         members = str(servers[i].member_count)
         print(' '+ servers[i].name+' with '+members+' members!')
 
-class BotStuffs():
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def invite(ctx):
+class BotStuffs(commands.Cog, name="Bot Things :robot:"):
+    """Bot invite, ping, etc."""
+    @commands.slash_command(guild_ids=guild)
+    async def invite(self, ctx):
         """Shows invite info, like server/bot invites"""
         useravatar = ctx.interaction.user.avatar
         username = ctx.author
@@ -37,8 +41,8 @@ class BotStuffs():
         embed.set_footer(text=now.strftime("%b %w %Y • %H:%M UTC"))
         await ctx.respond(embed=embed)
     
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def ping(ctx) -> None:
+    @commands.slash_command(guild_ids=guild)
+    async def ping(self, ctx) -> None:
         """Tests server latency by measuring how long it takes to edit a message."""
         embed = discord.Embed(title="Pong!", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
         embed.set_thumbnail(url=bot.user.display_avatar)
@@ -51,17 +55,19 @@ class BotStuffs():
         embed.add_field(name="API Latency", value=f"`{math.floor(bot.latency*1000)}ms`")
         await ctx.edit(embed=embed)
     
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def version(ctx):
+    @commands.slash_command(guild_ids=guild)
+    async def version(self, ctx):
         """Shows bot version and changelog"""
         embed = discord.Embed(title="Bot version: "+ver, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
-        embed.add_field(name="Changelog:", value="**"+ver+" includes:**\n\nUpdated urls and name\n\nSlowly adding in new commands (new help menu possible)\n\nFixed r34 command (no tags necessary)")
+        embed.add_field(name="Changelog:", value="**"+ver+" includes:**\n\nUpdated to pycord\n\nFinishing up command transfers\n\nShaking and crying :sob:")
         await ctx.respond(embed=embed)
 
-class Math:
+bot.add_cog(BotStuffs(bot))
+
+class Math(commands.Cog, name="Math :heavy_division_sign:"):
     """Math Commands for the needy"""
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def simple(ctx, operation : str):
+    @commands.slash_command(guild_ids=guild)
+    async def simple(self, ctx, operation : str):
         """Type 1st value, followed by [+, -, *, /] and then 2nd value"""
         title = "Here is your result!"
         color=discord.Color(random.randint(0x000000, 0xFFFFFF))
@@ -99,10 +105,16 @@ class Math:
         embed.add_field(name=result, value=answer)
         await ctx.respond(embed=embed)
 
-class Memes():
-    """Funny memes"""
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def tiktok(ctx):
+bot.add_cog(Math(bot))
+
+class Memes(commands.Cog, name="Memes :joy:"):
+    """Funny memes haha"""
+    def __init__(self, bot):
+        self.bot = bot
+        self._last_member = None
+
+    @commands.slash_command(guild_ids=guild)
+    async def tiktok(self, ctx):
         """Random TikTok quote (Requested by Anonymous)"""
         useravatar = ctx.interaction.user.avatar
         username = ctx.author
@@ -114,8 +126,8 @@ class Memes():
         embed.set_footer(text="TikTok is gay")
         await ctx.respond(embed=embed)
     
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def meme(ctx):
+    @commands.slash_command(guild_ids=guild)
+    async def meme(self, ctx):
         """Random meme from Reddit"""
         useravatar = ctx.interaction.user.avatar
         username = ctx.author
@@ -144,24 +156,104 @@ class Memes():
         embed.set_footer(text="Provided from r/"+subreddit+".")
         await ctx.respond(embed=embed)
 
-class Fun():
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def choose(ctx, choices : str):
+bot.add_cog(Memes(bot))
+
+class Fun(commands.Cog, name="Fun :smile:"):
+    """Fun commands (use with friends)"""
+    def __init__(self, bot):
+        self.bot = bot
+        self._last_member = None
+
+    @commands.slash_command(guild_ids=guild)
+    async def choose(self, ctx, choices : str):
         """Choose between things (separated by commas)"""
         choices = choices.split(",")
         await ctx.respond(random.choice(choices))
     
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def gay(ctx, user : discord.Member):
+    @commands.slash_command(guild_ids=guild)
+    async def gay(self, ctx, user : discord.Member):
         """Are you gay? (meme)"""
         level = random.randint(1,100)
         embed=discord.Embed(title='Gay Meter 2000', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
         embed.add_field(name='{0.name} is...'.format(user), value=str(level)+'% gay!')
         await ctx.respond(embed=embed)
 
-class OwnerOnly:
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def exec(ctx, exec:str):
+bot.add_cog(Fun(bot))
+
+class NSFW(commands.Cog, name="NSFW :underage:"):
+    """NSFW stuff. Only execute in NSFW channels."""
+    def __init__(self, bot):
+        self.bot = bot
+        self._last_member = None
+
+    @commands.slash_command(guild_ids=guild)
+    async def neko(self, ctx):
+        """Gives a neko based on NSFW or not"""
+        if ctx.interaction.channel.nsfw:
+            http = urllib3.PoolManager(
+                cert_reqs='CERT_REQUIRED',
+                ca_certs=certifi.where()
+            )
+            neko = http.request('GET', 'https://nekos.life/api/v2/img/lewd')
+            neko = str(neko.data)
+            neko = substring.substringByChar(neko, startChar='h', endChar='g')
+            embed = discord.Embed(title='Lewds!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+            embed.set_image(url=neko)
+            embed.set_footer(text='Image from nekos.life/lewd')
+            await ctx.respond(embed=embed)
+        else:
+            http = urllib3.PoolManager(
+                cert_reqs='CERT_REQUIRED',
+                ca_certs=certifi.where()
+            )
+            neko = http.request('GET', 'https://nekos.life/api/v2/img/neko')
+            neko = str(neko.data)
+            neko = substring.substringByChar(neko, startChar='h', endChar='g')
+            embed = discord.Embed(title='Nya!', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+            embed.set_image(url=neko)
+            embed.set_footer(text='Image from nekos.life')
+            await ctx.respond(embed=embed)
+    
+    @commands.slash_command(guild_ids=guild)
+    async def rule34(self, ctx, tags : str = None):
+        """Searches Rule34 for tags (split by spaces)"""
+        if ctx.interaction.channel.nsfw:
+            if tags:
+                tags = tags.split()
+            else:
+                tags = ""
+            url = 'https://rule34.xxx/index.php?page=dapi&s=post&q=index&limit=100&tags={}'.format("+".join(tags))
+            page = requests.get(url)
+            if not page.ok:
+                await ctx.respond("Error"+str(page.status_code))
+            soup = BeautifulSoup(page.text, 'html.parser')
+            file_urls = []
+            for element in soup.find_all(file_url=True):
+                file_urls.append(element["file_url"])
+            if len(file_urls) == 0:
+                embed = discord.Embed(color=0xFF0000)
+                embed.add_field(name=':warning:', value='No results found on rule34.xxx')
+                await ctx.respond(embed=embed)
+            else:
+                file_url = random.choice(file_urls)
+                embed = discord.Embed(title='Rule34 Search:', color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+                embed.set_image(url=file_url)
+                await ctx.respond(embed=embed)
+        else:
+            embed = discord.Embed(color=0xFF0000)
+            embed.add_field(name=':warning:', value='Must be a NSFW channel!')
+            await ctx.respond(embed=embed)
+
+bot.add_cog(NSFW(bot))
+
+class OwnerOnly(commands.Cog, name="Owner Only :no_entry:"):
+    """Bot owner commands only."""
+    def __init__(self, bot):
+        self.bot = bot
+        self._last_member = None
+    
+    @commands.slash_command(guild_ids=guild)
+    async def exec(self, ctx, exec:str):
         """Execute commands on local system"""
         if(ctx.interaction.user.id == 312319419240022017):
             cmd = os.popen(exec)
@@ -187,8 +279,8 @@ class OwnerOnly:
             embed.add_field(name="NO", value="You are not allowed to run exec!")
             await ctx.respond(embed = embed)
 
-    @bot.slash_command(guild_ids=[906774586987794483, 869694274319581184])
-    async def img(ctx, name:str):
+    @commands.slash_command(guild_ids=guild)
+    async def img(self, ctx, name:str):
         """Send file from name"""
         if(ctx.interaction.user.id == 312319419240022017):
             try:
@@ -202,5 +294,36 @@ class OwnerOnly:
             embed=discord.Embed(title='File results', color=discord.Color(0xFF0000))
             embed.add_field(name="NO", value="You are not allowed to run img!")
             await ctx.respond(embed = embed)
+
+bot.add_cog(OwnerOnly(bot))
+
+class Utilities(commands.Cog, name="Utils :hammer_pick:"):
+    """General use tools for this bot."""
+    def __init__(self, bot):
+        self.bot = bot
+        self._last_member = None
+    
+    @commands.slash_command(guild_ids=guild)
+    async def help(self, ctx, cmd : str = None):
+        """Show all commands"""
+        commandlist = []
+        embed = discord.Embed(title="Help Menu", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        if cmd:
+            command = bot.get_command(cmd)
+            embed.add_field(name=command.name, value=command.description)
+        else:
+            for cog in self.bot.cogs:
+                name = cog
+                cog = bot.get_cog(cog)
+                embed.add_field(name=name, value=cog.description)
+                for command in cog.walk_commands():
+                    if command.name in commandlist:
+                        continue
+                    else:
+                        embed.add_field(name=command.name, value=command.description)
+                        commandlist.append(command.name)
+        await ctx.respond(embed=embed)
+
+bot.add_cog(Utilities(bot))
 
 bot.run(TOKEN)
