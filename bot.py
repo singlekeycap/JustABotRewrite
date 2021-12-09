@@ -1,5 +1,6 @@
 import discord, os, random, math, requests, requests, urllib3, substring, certifi
 from discord.ext import commands
+from discord.ext.commands import Bot
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -11,9 +12,9 @@ TOKEN = os.getenv("TOKEN")
 #Set constants
 ver = "0.1b"
 dev = "JustANobody#2107"
-guild=[906774586987794483, 869694274319581184]
+guild = [906774586987794483, 869694274319581184]
 
-bot = discord.Bot()
+bot = Bot("jt!")
 
 @bot.event
 async def on_ready():
@@ -304,26 +305,60 @@ class Utilities(commands.Cog, name="Utils :hammer_pick:"):
         self._last_member = None
     
     @commands.slash_command(guild_ids=guild)
-    async def help(self, ctx, cmd : str = None):
+    async def help(self, ctx, cmd : str = None, page : int = 0):
         """Show all commands"""
-        commandlist = []
-        embed = discord.Embed(title="Help Menu", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
         if cmd:
             command = bot.get_command(cmd)
+            embed = discord.Embed(title="Help Menu", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
             embed.add_field(name=command.name, value=command.description)
         else:
-            for cog in self.bot.cogs:
-                name = cog
-                cog = bot.get_cog(cog)
-                embed.add_field(name=name, value=cog.description)
-                for command in cog.walk_commands():
-                    if command.name in commandlist:
-                        continue
-                    else:
-                        embed.add_field(name=command.name, value=command.description)
-                        commandlist.append(command.name)
-        await ctx.respond(embed=embed)
+            cogs = self.bot.cogs
+            max = len(self.bot.cogs)
+            cogs = list(cogs.values())
+            cog = cogs[page]
+            embed = discord.Embed(title=cog.qualified_name, description=cog.description, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+            for command in cog.walk_commands():
+                embed.add_field(name=command.name, value=command.description)
+            await ctx.respond(embed=embed, view = HelpButtons(bot, ctx, page, max))
 
 bot.add_cog(Utilities(bot))
+
+class HelpButtons(discord.ui.View):
+    def __init__(self, bot : discord.Bot, ctx, page : int, max : int):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+        self.page = page
+        self.max = max
+    
+    def get_page(self, bot : discord.Bot, num : int, max : int):
+        cogs = bot.cogs
+        cogs = list(cogs.values())
+        if num > max:
+            num = max
+        if num < 0:
+            num = 0
+        cog = cogs[num]
+        embed = discord.Embed(title=cog.qualified_name, description=cog.description, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
+        for command in cog.walk_commands():
+            embed.add_field(name=command.name, value=command.description)
+        return embed
+    
+    @discord.ui.button(label = "⬅️", style=discord.ButtonStyle.blurple)
+    async def left(self, button: discord.ui.Button, interaction = discord.Interaction):
+        print(self.get_page(self.bot, self.page, self.max))
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(bot = self.bot, num = self.page, max = self.max), view = HelpButtons(self.ctx))
+
+    @discord.ui.button(label = "⏹️", style=discord.ButtonStyle.blurple)
+    async def stop(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(self.bot, self.page, self.max), view = HelpButtons(self.ctx))
+
+    @discord.ui.button(label = "➡️", style=discord.ButtonStyle.blurple)
+    async def right(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(self.bot, self.page, self.max), view = HelpButtons(self.ctx))
+
+    @discord.ui.button(label = "🔢", style=discord.ButtonStyle.blurple)
+    async def num(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(self.bot, self.page, self.max), view = HelpButtons(self.ctx))
 
 bot.run(TOKEN)
