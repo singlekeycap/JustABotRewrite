@@ -1,6 +1,6 @@
-import discord, os, random, math, requests, requests, urllib3, substring, certifi
+import discord, os, random, math, requests, requests, urllib3, substring, certifi, asyncio
 from discord.ext import commands
-from discord.ext.commands import Bot
+from discord.ext import tasks
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -14,7 +14,7 @@ ver = "0.1b"
 dev = "JustANobody#2107"
 guild = [906774586987794483, 869694274319581184]
 
-bot = Bot("jt!")
+bot = discord.Bot("jt!")
 
 @bot.event
 async def on_ready():
@@ -352,17 +352,52 @@ class HelpButtons(discord.ui.View):
     @discord.ui.button(label = "⬅️", style=discord.ButtonStyle.blurple)
     async def left(self, button: discord.ui.Button, interaction = discord.Interaction):
         await self.ctx.interaction.edit_original_message(embed = self.get_page(True, False)[0], view = HelpButtons(self.bot, self.ctx, self.get_page(True, False)[1]))
+        await asyncio.sleep(20)
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(True, False)[0], view = DisabledHelp())
 
     @discord.ui.button(label = "⏹️", style=discord.ButtonStyle.blurple)
     async def stop(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(self.bot, self.page, self.max), view = HelpButtons(self.bot, self.ctx, self.page))
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, False)[0], view = DisabledHelp())
 
     @discord.ui.button(label = "➡️", style=discord.ButtonStyle.blurple)
     async def right(self, button: discord.ui.Button, interaction = discord.Interaction):
         await self.ctx.interaction.edit_original_message(embed = self.get_page(False, True)[0], view = HelpButtons(self.bot, self.ctx, self.get_page(False, True)[1]))
+        await asyncio.sleep(20)
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, True)[0], view = DisabledHelp())
 
     @discord.ui.button(label = "🔢", style=discord.ButtonStyle.blurple)
     async def num(self, button: discord.ui.Button, interaction = discord.Interaction):
         await self.ctx.interaction.edit_original_message(embed = self.get_page(self.bot, self.page, self.max), view = HelpButtons(self.bot, self.ctx, self.page))
+        await asyncio.sleep(20)
+        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, False)[0], view = DisabledHelp())
+    
+class DisabledHelp(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+    
+    @discord.ui.button(label = "⬅️", style=discord.ButtonStyle.blurple, disabled=True)
+    async def left(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await asyncio.sleep(1)
+
+    @discord.ui.button(label = "⏹️", style=discord.ButtonStyle.blurple, disabled=True)
+    async def stop(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await asyncio.sleep(1)
+
+    @discord.ui.button(label = "➡️", style=discord.ButtonStyle.blurple, disabled=True)
+    async def right(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await asyncio.sleep(1)
+
+    @discord.ui.button(label = "🔢", style=discord.ButtonStyle.blurple, disabled=True)
+    async def num(self, button: discord.ui.Button, interaction = discord.Interaction):
+        await asyncio.sleep(1)
+
+@tasks.loop(seconds = 20)
+async def myLoop():
+    await bot.wait_until_ready()
+    await bot.change_presence(activity=discord.Activity(name=str(len(bot.guilds))+' guilds', type=3))
+    await asyncio.sleep(10)
+    await bot.change_presence(activity=discord.Game(name='Need help? /help'))
+
+myLoop.start()
 
 bot.run(TOKEN)
