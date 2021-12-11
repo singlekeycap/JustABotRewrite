@@ -1,6 +1,7 @@
 import discord, os, random, math, requests, requests, urllib3, substring, certifi, asyncio
 from discord.ext import commands
 from discord.ext import tasks
+from buttons import HelpButtons, DisabledHelp
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -312,6 +313,7 @@ class Utilities(commands.Cog, name="Utils :hammer_pick:"):
             embed = discord.Embed(title="Help Menu", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
             embed.add_field(name=command.name, value=command.description)
         else:
+            id = ctx.interaction.user.id
             cogs = self.bot.cogs
             max = len(self.bot.cogs)
             cogs = list(cogs.values())
@@ -319,77 +321,9 @@ class Utilities(commands.Cog, name="Utils :hammer_pick:"):
             embed = discord.Embed(title=cog.qualified_name, description=cog.description, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
             for command in cog.walk_commands():
                 embed.add_field(name=command.name, value=command.description)
-            await ctx.respond(embed=embed, view = HelpButtons(bot, ctx, page))
+            await ctx.respond(embed=embed, view = HelpButtons(bot, ctx, page, id))
 
 bot.add_cog(Utilities(bot))
-
-class HelpButtons(discord.ui.View):
-    def __init__(self, bot : discord.Bot, ctx, page : int):
-        super().__init__()
-        self.bot = bot
-        self.ctx = ctx
-        self.page = page
-    
-    def get_page(self, left, right):
-        cogs = self.bot.cogs
-        max = len(self.bot.cogs)-1
-        cogs = list(cogs.values())
-        num = self.page
-        if left:
-            num = num - 1
-        elif right:
-            num = num + 1
-        if num > max:
-            num = max
-        elif num < 0:
-            num = 0
-        cog = cogs[num]
-        embed = discord.Embed(title=cog.qualified_name, description=cog.description, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
-        for command in cog.walk_commands():
-            embed.add_field(name=command.name, value=command.description)
-        return [embed, num]
-    
-    @discord.ui.button(label = "⬅️", style=discord.ButtonStyle.blurple)
-    async def left(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(True, False)[0], view = HelpButtons(self.bot, self.ctx, self.get_page(True, False)[1]))
-        await asyncio.sleep(20)
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(True, False)[0], view = DisabledHelp())
-
-    @discord.ui.button(label = "⏹️", style=discord.ButtonStyle.blurple)
-    async def stop(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, False)[0], view = DisabledHelp())
-
-    @discord.ui.button(label = "➡️", style=discord.ButtonStyle.blurple)
-    async def right(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, True)[0], view = HelpButtons(self.bot, self.ctx, self.get_page(False, True)[1]))
-        await asyncio.sleep(20)
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, True)[0], view = DisabledHelp())
-
-    @discord.ui.button(label = "🔢", style=discord.ButtonStyle.blurple)
-    async def num(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(self.bot, self.page, self.max), view = HelpButtons(self.bot, self.ctx, self.page))
-        await asyncio.sleep(20)
-        await self.ctx.interaction.edit_original_message(embed = self.get_page(False, False)[0], view = DisabledHelp())
-    
-class DisabledHelp(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-    
-    @discord.ui.button(label = "⬅️", style=discord.ButtonStyle.blurple, disabled=True)
-    async def left(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await asyncio.sleep(1)
-
-    @discord.ui.button(label = "⏹️", style=discord.ButtonStyle.blurple, disabled=True)
-    async def stop(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await asyncio.sleep(1)
-
-    @discord.ui.button(label = "➡️", style=discord.ButtonStyle.blurple, disabled=True)
-    async def right(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await asyncio.sleep(1)
-
-    @discord.ui.button(label = "🔢", style=discord.ButtonStyle.blurple, disabled=True)
-    async def num(self, button: discord.ui.Button, interaction = discord.Interaction):
-        await asyncio.sleep(1)
 
 @tasks.loop(seconds = 20)
 async def myLoop():
