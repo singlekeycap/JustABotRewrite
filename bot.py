@@ -1,6 +1,7 @@
 import discord, os, random, math, requests, requests, urllib3, substring, certifi, asyncio
 from discord.ext import commands
 from discord.ext import tasks
+from buttons import HelpButtons, DisabledHelp
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -313,6 +314,7 @@ class Utilities(commands.Cog, name="Utilities :hammer_pick:"):
             embed = discord.Embed(title="Help Menu", color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
             embed.add_field(name=command.name, value=command.description)
         else:
+            id = ctx.interaction.user.id
             cogs = self.bot.cogs
             max = len(self.bot.cogs)
             cogs = list(cogs.values())
@@ -320,7 +322,7 @@ class Utilities(commands.Cog, name="Utilities :hammer_pick:"):
             embed = discord.Embed(title=cog.qualified_name, description=cog.description, color=discord.Color(random.randint(0x000000, 0xFFFFFF)))
             for command in cog.walk_commands():
                 embed.add_field(name=command.name, value=command.description)
-            await ctx.respond(embed=embed, view = HelpButtons(bot, ctx, page))
+            await ctx.respond(embed=embed, view = HelpButtons(bot, ctx, page, id))
 
 bot.add_cog(Utilities(bot))
 
