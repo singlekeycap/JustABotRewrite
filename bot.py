@@ -1,5 +1,6 @@
 import discord, os, random, math, requests, requests, urllib3, substring, certifi, asyncio
 from discord.ext import commands
+from discord.ext.commands import has_guild_permissions
 from discord.ext import tasks
 from buttons import HelpButtons, DisabledHelp
 from fake_useragent import UserAgent
@@ -14,7 +15,8 @@ TOKEN = os.getenv("TOKEN")
 #Set constants
 ver = "0.1b"
 dev = "JustANobody#2107"
-guild = [906774586987794483, 869694274319581184]
+guild = []
+log_channel = 891674969728245803
 
 bot = discord.Bot("jt!")
 
@@ -23,10 +25,13 @@ async def on_ready():
     print('Logged in as:\n{0} (ID: {0.id})'.format(bot.user))
     print('------------------')
     print('Connected to '+str(len(bot.guilds))+' servers!')
-    servers = list(bot.guilds)
-    for i in range(len(servers)):
-        members = str(servers[i].member_count)
-        print(' '+ servers[i].name+' with '+members+' members!')
+    for srv in bot.guilds:
+        guild.append(srv.id)
+        members = str(srv.member_count)
+        print(' '+ srv.name+' with '+members+' members!')
+    channel = bot.get_channel(log_channel)
+    embed = discord.Embed(title="Bot started!", description=datetime.now().strftime('%A, %B %d, %Y at %H:%M:%S UTC-5 (Eastern Standard Time)'), color=discord.Color(0x00FF00))
+    await channel.send(embed=embed)
 
 class BotStuffs(commands.Cog, name="Bot Things :robot:"):
     """Bot invite, ping, etc."""
@@ -263,7 +268,7 @@ class OwnerOnly(commands.Cog, name="Owner Only :no_entry:"):
             output = cmd.read()
             if len(output) > 2000:
                 with open('output.txt', 'w') as f:
-                    f.write(cmd.read())
+                    f.write(output)
                     f.close()
                 file = discord.File('output.txt')
                 await ctx.respond(file = file)
@@ -333,8 +338,33 @@ class Admin(commands.Cog, name="Admin Commands :hammer_pick:"):
         self._last_member = None
     
     @commands.slash_command(guild_ids=guild)
-    async def ban(self, ctx, user : discord.Member = None):
+    async def ban(self, ctx, user : discord.Member, reason : str = None, msgdelete : int = 0):
         """Bans a user"""
+        if isinstance(user, int):
+            user = await bot.fetch_user(user)
+        if msgdelete > 7:
+            msgdelete = 7
+        name = user.name
+        if ctx.interaction.user.guild_permissions.ban_members:
+            try:
+                await ctx.guild.ban(user, reason=reason, delete_message_days=msgdelete)
+                embed = discord.Embed(title="Ban succeeded", description="Successfully banned "+name, color=discord.Color(0x32CD32))
+                embed.add_field(name="Reason", value=reason)
+                await ctx.respond(embed=embed)
+            except Exception:
+                embed = discord.Embed(title="Ban failed", description="Hey! I can't ban that person!", color=discord.Color(0xFF0000))
+                embed.add_field(name="‎", value="Check my perms or role hierarchy.")
+                msg = await ctx.respond(embed=embed)
+                await asyncio.sleep(5)
+                await msg.delete_original_message()
+                
+        else:
+            embed = discord.Embed(title="Ban failed", description="Hey! I can't ban that person!", color=discord.Color(0xFF0000))
+            embed.add_field(name="‎", value="YOU DON'T HAVE PERMS :joy::joy::joy:.")
+            msg = await ctx.respond(embed=embed)
+            await asyncio.sleep(5)
+            await msg.delete_original_message()
+
 
 bot.add_cog(Admin(bot))
 
